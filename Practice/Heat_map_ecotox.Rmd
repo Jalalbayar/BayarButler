@@ -1,0 +1,624 @@
+---
+title: "Ecotox"
+author: "Jalal Bayar"
+date: "2025-04-10"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+#Loading libraries
+library(lubridate); library(here); library(tidyverse); library(corrplot); library(agricolae); library(here); library(dplyr); library(ggplot2); library(pheatmap)
+getwd()
+
+#read csv raw data file
+ET.Pht <- read.csv(
+  file = here("./ECOTOX_Phthalates_Aquatics_raw.csv"),
+  stringsAsFactors = TRUE,
+  colClasses = c("CAS.Number" = "factor")
+)
+```
+
+```{r}
+#Only fish
+fish_pht <- ET.Pht %>% 
+  filter(Species.Group %in% c("Fish", "Fish; Standard Test Species",
+                              "Fish; Standard Test Species; U.S. Threatened and Endangered Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Embryo", "Larva", "Adult")) %>% 
+  filter(Endpoint %in% c("LC50", "NOEC", "LOEC")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt")) %>% 
+  filter(Effect %in% c("Mortality")) %>% 
+  filter(Exposure.Type %in% c("Static", "Renewal", "Flow-through"))
+
+
+summary(fish_pht$Effect)
+```
+
+
+
+```{r}
+#Tidy dataset
+fish_tidy <- fish_pht %>% 
+  select("Chemical.abbreviation", 
+         "Species.Common.Name",
+         "Organism.Lifestage",
+         "Endpoint",
+         "Conc.1.Mean..Standardized.",
+         "Exposure.Type"
+         )
+#rename colnames
+colnames(fish_tidy) <- c('phthalates', 'species', 'life_stage', 'endpoint',
+                              'concentration', 'exposure')
+
+fish_tidy <- fish_tidy %>% 
+  filter(endpoint %in% c("NOEC"))
+
+#na zeros
+fish_tidy <- fish_tidy[!is.na(fish_tidy$concentration), ]
+
+
+#New_column
+
+fish_tidy$studies <- 1:106
+
+# pivot wider
+
+fish_wide <- fish_tidy %>% 
+  pivot_wider(names_from = studies,
+              values_from = concentration)
+
+  
+  
+  
+  is.na(fish_tidy$concentration)
+fish_tidy1 <- as.data.frame(fish_tidy1)
+ 
+
+# pivot wider
+
+fish_wide <- fish_tidy %>%
+  pivot_wider(names_from = c("species", "life_stage"), values_from = concentration)
+
+# 
+fish_tidy$lifestage_species_exposure <- paste(fish_tidy$life_stage, fish_tidy$species, 
+                                              fish_tidy$exposure, fish_tidy$studies, sep = "_")
+
+#Group by
+library(reshape2)
+fish_matrix <- pivot_wider(fish_tidy, names_from = lifestage_species_exposure, values_from = concentration,
+                           id_cols = phthalates)
+  
+  #acast(fish_tidy, phthalates + species + life_stage + endpoint + exposure ~ concentration, value.var = "concentration")
+
+#mean concentration exposure type
+
+fish_tidy_mean <- fish_tidy %>%
+ group_by(phthalates, species, life_stage, endpoint, exposure) %>%
+ summarize(mean_concentration = mean(concentration))
+
+#boxplot
+ggplot(fish_tidy_mean, aes(x = species, y = mean_concentration, color = phthalates)) +
+  geom_boxplot() +
+  geom_point(aes(shape = endpoint)) +
+  scale_y_log10() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+
+
+
+data_matrix <- acast(fish_tidy_mean, phthalates + species + life_stage + endpoint + exposure ~ mean_concentration, value.var = "mean_concentration")
+
+
+pheatmap(data_matrix)
+
+
+```
+
+```{r}
+fish_tidy$phthalates_species <- paste(fish_tidy$phthalates, fish_tidy$species, sep = "_")
+
+library(viridis)
+ggplot(fish_tidy, aes(x = life_stage, y = phthalates_species, fill = concentration)) +
+  geom_tile() +
+scale_fill_gradient(low = "lightblue", high = "blue") +
+ theme_minimal() +
+ labs(title = "Heatmap of Phthalates and Species by Life Stage",
+  x = "Life Stage",
+  y = "Phthalate and Species",
+  fill = "Concentration") +
+ facet_wrap(~ endpoint)
+
+Aes(Y=species, x=life stage),+
+facet_grid(rows=vars(phthalate), cols=vars(measure), scales = free, space=free)
+
+#Ilaria graph
+
+ggplot(fish_5_columns, aes(y = species, x = life_stage, fill = concentration)) +
+  geom_tile() +
+  facet_grid(rows=vars(phthalates), cols=vars(endpoint), scales = free, space=free) +
+scale_fill_gradient(low = "lightblue", high = "blue") +
+ theme_minimal() +
+ labs(title = "Heatmap of Phthalates and Species by Life Stage",
+  x = "Life Stage",
+  y = "Phthalate and Species",
+  fill = "Concentration")
+
+
+
+
+```
+
+```{r}
+#Crustaceans
+
+ET.Pht <- read.csv(
+  file = here("./ECOTOX_Phthalates_Aquatics_raw.csv"),
+  stringsAsFactors = TRUE,
+  colClasses = c("CAS.Number" = "factor")
+)
+
+#Wrangling crustaceans
+
+crustaceans_pht <- ET.Pht %>% 
+  filter(Species.Group %in% c("Crustaceans",
+                              "Crustaceans; Standard Test Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Juvenile", "Adult")) %>% 
+  filter(Endpoint %in% c("LC50", "NOEC", "LOEC")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt")) %>% 
+  filter(Effect %in% c("Reproduction"))
+
+summary(crustaceans_pht$Effect)
+```
+
+```{r}
+#tiday data set and Heat map CRUSTACEANS
+#Tidy dataset
+crustaceans_5_columns <- crustaceans_pht %>% 
+  select("Chemical.abbreviation", 
+         "Species.Common.Name",
+         "Organism.Lifestage",
+         "Endpoint",
+         "Conc.1.Mean..Standardized.",
+         )
+
+#rename colnames
+colnames(crustaceans_5_columns) <- c('phthalates', 'species', 'life_stage', 'endpoint', 'concentration') 
+
+
+#
+crustaceans_5_columns$phthalates_species <- paste(crustaceans_5_columns$phthalates, crustaceans_5_columns$species, sep = "_")
+
+ggplot(crustaceans_5_columns, aes(x = life_stage, y = phthalates_species, fill = concentration)) +
+  geom_tile() +
+scale_fill_gradient(low = "lightblue", high = "blue") +
+ theme_minimal() +
+ labs(title = "Heatmap of Phthalates and Crustaceans by Life Stage",
+  x = "Life Stage",
+  y = "Phthalate and Species",
+  fill = "Concentration") +
+ facet_wrap(~ endpoint)
+
+```
+
+
+```{r}
+#AMPHIBIANS
+ET.Pht <- read.csv(
+  file = here("./ECOTOX_Phthalates_Aquatics_raw.csv"),
+  stringsAsFactors = TRUE,
+  colClasses = c("CAS.Number" = "factor")
+)
+
+#Wrangling crustaceans
+
+amphibians_pht <- ET.Pht %>% 
+  filter(Species.Group %in% c("Amphibians",
+                              "Amphibians; Standard Test Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Embryo", "Larva")) %>% 
+  filter(Endpoint %in% c("LC50", "NOEC", "LOEC")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt")) %>% 
+  filter(Effect %in% c("Genetics"))
+
+summary(amphibians_pht$Effect)
+
+
+
+```
+
+```{r}
+#tidy data set and Heat map AMPHIBIANS
+#Tidy dataset
+amphibians_5_columns <- amphibians_pht %>% 
+  select("Chemical.abbreviation", 
+         "Species.Common.Name",
+         "Organism.Lifestage",
+         "Endpoint",
+         "Conc.1.Mean..Standardized.",
+         )
+
+#rename colnames
+colnames(amphibians_5_columns) <- c('phthalates', 'species', 'life_stage', 'endpoint', 'concentration') 
+
+
+#
+amphibians_5_columns$phthalates_species <- paste(amphibians_5_columns$phthalates, amphibians_5_columns$species, sep = "_")
+
+ggplot(amphibians_5_columns, aes(x = life_stage, y = phthalates_species, fill = concentration)) +
+  geom_tile() +
+scale_fill_gradient(low = "lightblue", high = "blue") +
+ theme_minimal() +
+ labs(title = "Heatmap of Phthalates and Amphibians by Life Stage",
+  x = "Life Stage",
+  y = "Phthalate and Species",
+  fill = "Concentration") +
+ facet_wrap(~ endpoint)
+
+```
+
+
+```{r}
+ET.Pht <- read.csv(
+  file = here("./ECOTOX_Phthalates_Aquatics_raw.csv"),
+  stringsAsFactors = TRUE,
+  colClasses = c("CAS.Number" = "factor")
+)
+
+#Tidy dataset
+ET.Pht <- ET.Pht %>% 
+  select("CAS.Number", "Chemical.abbreviation", "Species.Scientific.Name",
+         "Species.Common.Name", "Species.Group",
+         "Organism.Lifestage", "Exposure.Type",
+         "Media.Type", "Test.Location",
+         "Conc.1.Mean..Standardized.", "Conc.1.Mean..Standardized.", "Conc.1.Units..Standardized.",
+         "Effect", "Effect.Measurement",
+         "Endpoint", "Response.Site",
+         "Publication.Year", "Citation")
+
+#filtering life stages for fish, crustaceans, and amphibians
+#Here i filter data by three species type (Fish, crustaceans, amphibians), life stages (embryo, larva, adult, juvenile), endpoint (LC50, NOEC, LOEC) 
+
+wrangle_pht <- ET.Pht %>% 
+  filter(Species.Group %in% c("Fish", "Fish; Standard Test Species",
+                              "Fish; Standard Test Species; U.S. Threatened and Endangered Species",
+                              "Crustaceans",
+                              "Crustaceans; Standard Test Species",
+                              "Amphibians",
+                              "Amphibians; Standard Test Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Embryo", "Larva", "Adult", "Juvenile", "Blastula", "Tadpole")) %>% 
+  filter(Endpoint %in% c("LC50", "NOEC", "LOEC"))
+```
+
+```{r}
+#Only fish
+fish_pht <- ET.Pht %>% 
+  filter(Species.Group %in% c("Fish", "Fish; Standard Test Species",
+                              "Fish; Standard Test Species; U.S. Threatened and Endangered Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Embryo", "Larva", "Adult")) %>% 
+  filter(Endpoint %in% c("LC50", "NOEC", "LOEC")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt"))
+```
+
+
+```{r}
+#select data for phthalates, species, lifestage, concentration and endpoints
+fish_5_columns <- fish_pht %>% 
+  select(Chemical.abbreviation, Species.Common.Name, Organism.Lifestage, Endpoint, Conc.1.Mean..Standardized.
+         )
+```
+
+
+```{r}
+df <- fish_pht %>% 
+  select(Chemical.abbreviation, Species.Common.Name, Organism.Lifestage, Endpoint, Conc.1.Mean..Standardized.
+         )
+
+#rename columns
+colnames(df) <- c('phthalates', 'species', 'life_stage', 'endpoint', 'concentration')
+
+
+ggplot(df, aes(x = species, y = life_stage, fill = concentration)) +
+ geom_tile() +
+ facet_grid(endpoint ~ phthalates) +
+ scale_fill_gradient(low = "white", high = "red") +
+ labs(title = "Heat Map of Concentrations",
+ x = "Species",
+ y = "Life Stage",
+ fill = "Concentration") +
+ theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+```
+
+```{r}
+str(df)
+
+df$phthalates_species <- paste(data$phthalates, data$species, sep = "_")
+
+```
+
+```{r}
+str(df)
+
+ggplot(df, aes(x = life_stage, y = species, fill = concentration)) +
+ geom_tile() +
+ facet_wrap(~ phthalates) +
+ scale_fill_gradient(low = "green", high = "red") +
+ labs(title = "Heat Map of Concentrations",
+ x = "Life Stage",
+ y = "Species",
+ fill = "Concentration") +
+ theme_minimal() +
+ theme(legend.position = "bottom")
+
+
+```
+
+
+```{r}
+library(reshape2)
+
+heatmap_data <- dcast(fish_5_columns, Species.Common.Name + Endpoint ~ Organism.Lifestage + 
+                        Chemical.abbreviation, value.var = "Conc.1.Mean..Standardized.")
+
+
+heatmap_matrix <- as.matrix(heatmap_data[,-c(1,2)])
+rownames(heatmap_matrix) <- paste(heatmap_data$Chemical.abbreviation, heatmap_data$Endpoint, sep = "_")
+
+
+ggplot(melt(heatmap_matrix), aes(Var1, Var2, fill = value)) +
+ geom_tile() +
+ scale_fill_gradient(low = "white", high = "red") +
+ labs(title = "Heat Map of Phthalates Concentration", x = "Life Stage and Phthalates", y = "Species and Endpoint") +
+ theme_minimal()
+
+
+```
+
+
+```{r}
+df <- fish_pht %>% 
+  select(Chemical.abbreviation, Species.Common.Name, Organism.Lifestage, Endpoint, Conc.1.Mean..Standardized.
+         )
+
+rename(fish_pht)
+
+
+
+
+```
+
+
+```{r}
+#pivot wider
+fish_5_columns_wide <- fish_5_columns %>% 
+  pivot_wider(names_from = Endpoint,
+              values_from = Conc.1.Mean..Standardized.)
+
+```
+
+
+```{r}
+#
+
+#Pivot wider concentration by life stage, phthalates, endpoint
+
+pivot_wider.fish.pht <- fish_pht %>% 
+  pivot_wider(names_from = c(Chemical.abbreviation, Endpoint, Organism.Lifestage,Species.Common.Name),
+              values_from = Conc.1.Mean..Standardized.)
+
+#Select only what we need columns
+select_fish_lifestage_endpoint <- pivot_wider.fish.pht %>% 
+  select(`DEP_LOEC_Embryo_Zebra Danio`:`DINP_NOEC_Embryo_Zebra Danio`)
+
+
+#Pivot longer
+
+df_long <- select_fish_lifestage_endpoint %>%
+pivot_longer(cols = everything(), names_to = "variable", values_to = "concentration") %>%
+separate(variable, into = c("Chemical.abbreviation", "Endpoint", "Organism.Lifestage", "Species.Common.Name"), sep = "_")
+
+
+heatmap_data <- df_long %>%
+ pivot_wider(names_from = Organism.Lifestage, values_from = concentration)
+
+
+
+
+# Create the heatmap
+ggplot(pivot_wider.fish.pht, aes(x = chemical.abbreviation, y = species)) +
+ geom_tile(aes(fill = concentration)) +
+ facet_grid(life_stage ~ endpoint) +
+ scale_fill_gradient(low = "white", high = "red") +
+ theme_minimal() +
+ labs(title = "Heatmap of Phthalate Concentrations",
+ x = "Phthalate",
+ y = "Fish Species",
+  fill = "Concentration")
+
+
+
+
+
+  
+```
+
+```
+
+
+```{r}
+#Pivot wider
+
+pivot_wider_pht <- ET.Pht %>% 
+  
+
+
+```
+
+
+
+```{r setup, include=FALSE}
+#Wrangling fish data LC 50 and only Embryo #Mortality
+ET.Fish.embryo.LC50 <- ET.Pht %>% 
+  filter(Species.Group %in% c("Fish", "Fish; Standard Test Species",
+                              "Fish; Standard Test Species; U.S. Threatened and Endangered Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Embryo")) %>% 
+  filter(Endpoint %in% c("LC50")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt")) %>% 
+  filter(Exposure.Type %in% c("Static", "Renewal", "Flow-through")) %>% 
+  filter(Effect %in% c("Mortality"))
+
+#Box plot all fish only embryos lc 50
+Allfish.embryo.lc50.box.scatter.log.10 <- ggplot(ET.Fish.embryo.LC50, aes(x = Species.Common.Name,
+                    y = Conc.1.Mean..Standardized.,
+                    color = Chemical.abbreviation,
+                    )) +
+  geom_boxplot(size = 0.3) +
+  geom_point(aes(shape = Exposure.Type)) +
+  scale_y_log10() +
+  labs(x = "Fish Species",
+       y = expression(Log[10] * LC[50] * " [mg/L]"), 
+       color = "Phthalates",
+       shape = "Exposure Type") +
+  theme_bw() +
+  ggtitle("Embryo (LC50)") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+Allfish.embryo.lc50.box.scatter.log.10
+
+  ggsave(
+  filename = "./Practice/Graphs.phthalates/Allfish.embryo.lc50.box.scatter.log.10.jpg",
+  plot = Allfish.embryo.lc50.box.scatter.log.10,
+  height = 4, 
+  width = 6, 
+  units = "in", 
+  dpi = 1200
+  )
+
+
+
+```
+
+```{r}
+#Wrangling fish data NOEC and only Embryo #Mortality
+
+ET.Fish.embryo.NOEC <- ET.Pht %>% 
+  filter(Species.Group %in% c("Fish", "Fish; Standard Test Species",
+                              "Fish; Standard Test Species; U.S. Threatened and Endangered Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Embryo")) %>% 
+  filter(Endpoint %in% c("NOEC")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt")) %>% 
+  filter(Exposure.Type %in% c("Static", "Renewal", "Flow-through")) %>% 
+  filter(Effect %in% c("Mortality")) %>% 
+  filter(Chemical.abbreviation %in% c("BBP", "DMP", "DOP", "DBP", "DEHP"))
+
+summary(ET.Pht$Effect)
+
+#Box plot all fish only embryos NOEC
+Allfish.embryo.NOEC.box.scatter.log.10 <- ggplot(ET.Fish.embryo.NOEC, aes(x = Species.Common.Name,
+                    y = Conc.1.Mean..Standardized.,
+                    color = Chemical.abbreviation,
+                    )) +
+  geom_boxplot(size = 0.3) +
+  geom_point(aes(shape = Exposure.Type)) +
+  scale_y_log10() +
+  labs(x = "Fish Species",
+       y = expression(Log[10] * NOEC * " [mg/L]"), 
+       color = "Phthalates",
+       shape = "Exposure Type") +
+  theme_bw() +
+  ggtitle("Embryo (NOEC)") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+Allfish.embryo.NOEC.box.scatter.log.10  
+
+
+ET.Pht.1 <- ET.Pht %>%
+mutate(Chemical.abbreviation = ifelse(
+  Chemical.abbreviation == "DOP", "DNOP", 
+  Chemical.abbreviation))
+
+ET.Pht.1 <- ET.Pht.1 %>%
+mutate(Chemical.abbreviation = as.factor(Chemical.abbreviation))
+
+
+summary(ET.Pht$Chemical.abbreviation)
+summary(ET.Pht.1$Chemical.abbreviation)
+
+print(ET.Pht)
+
+
+
+Allfish.embryo.NOEC.box.scatter.log.10 <- ggplot(ET.Fish.embryo.NOEC, aes(x = Species.Common.Name,
+ y = Conc.1.Mean..Standardized.,
+ color = Chemical.abbreviation)) +
+ geom_boxplot(size = 0.3) +
+ geom_point(aes(shape = Effect)) +
+ scale_y_log10() +
+ facet_wrap(vars(Effect), nrow = 1, ncol = 3) +
+ labs(x = "Fish Species",
+ y = expression(Log[10] * " NOEC [mg/L]"), 
+color = "Phthalates",
+shape = "Effect")
+
+
+Allfish.embryo.NOEC.box.scatter.log.10 <- ggplot(ET.Fish.embryo.NOEC, aes(x = Species.Common.Name,
+y = Conc.1.Mean..Standardized.,
+ color = Chemical.abbreviation)) +
+ geom_boxplot(size = 0.3) +
+ geom_point(aes(shape = Exposure.Type)) +
+ scale_y_log10() +
+ facet_wrap(vars(Effect), nrow = 1, ncol = 3) +
+ labs(x = "Fish Species",
+ y = expression(Log[10] * " NOEC [mg/L]"), 
+ color = "Phthalates",
+shape = "Exposure Type") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+Allfish.embryo.NOEC.box.scatter.log.10
+
+  
+  +
+  ggtitle("Embryo (NOEC)") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+Allfish.embryo.NOEC.box.scatter.log.10
+
+
+  ggsave(
+  filename = "./Practice/Graphs.phthalates/Allfish.embryo.lc50.box.scattter.log.10.jpg",
+  plot = Allfish.embryo.lc50.box.scattter.log.10,
+  height = 4, 
+  width = 6, 
+  units = "in", 
+  dpi = 1200
+  )
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
