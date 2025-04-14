@@ -86,6 +86,28 @@ ggplot(fish_tidy_NOEC, aes(x = species, y = concentration, color = life_stage)) 
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
 
+#wrangle crustaceans
+Crustaceans <- ET.Pht %>% 
+  filter(Chemical.abbreviation %in% c("DEHP")) %>% 
+  filter(Species.Group %in% c("Crustaceans",
+                              "Crustaceans; Standard Test Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Juvenile", "Adult")) %>% 
+  filter(Endpoint %in% c("LC50", "NOEC")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt"))
+
+#Amphibians +Rough
+Amphibians <- ET.Pht %>% 
+  filter(Species.Group %in% c("Amphibians",
+                              "Amphibians; Standard Test Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Embryo", "Blastula")) %>% 
+  filter(Endpoint %in% c("LC50")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt")) %>% 
+  filter(Exposure.Type %in% c("Static" , "Renewal", "Flow-through"))
+
 
 ```
 
