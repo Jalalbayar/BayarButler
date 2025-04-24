@@ -1,0 +1,192 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+\newpage
+\tableofcontents 
+\newpage
+\listoftables 
+\newpage
+\listoffigures 
+\newpage
+
+```{r setup, include=FALSE}
+# Set your working directory
+getwd()
+# Load your packages
+library(lubridate); library(tidyverse); library(corrplot); library(agricolae); 
+library(here); library(dplyr)
+
+# Set your ggplot theme
+
+# Load your datasets
+ET.Pht <- read.csv(
+  file = here("./ECOTOX_Phthalates_Aquatics_raw.csv"),
+  stringsAsFactors = TRUE,
+  colClasses = c("CAS.Number" = "factor")
+)
+
+```
+
+
+
+
+# Rationale and Research Questions
+```{r}
+
+#which fish species is most sensative to DEHP?
+#which lifestage of the fish species is most sensative to DEHP?
+
+#which crustaceans is most sensative to DEHP?
+#which crustaceans lifestage is most sensative to DEHP?
+
+#which amphibians is most sensative to DEHP?
+#which amphibians lifestage is most sensative to DEHP?
+
+
+```
+
+
+```{r}
+#Wrangling
+
+#Fish wrangling and tidying
+Fish <- ET.Pht %>% 
+  filter(Chemical.abbreviation %in% c("DEHP")) %>% 
+  filter(Species.Group %in% c("Fish", "Fish; Standard Test Species",
+                              "Fish; Standard Test Species; U.S. Threatened and Endangered Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Embryo", "Larva", "Adult")) %>% 
+  filter(Endpoint %in% c("LC50", "NOEC")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt")) 
+
+#Select appropriate columns
+fish_tidy <- Fish %>% 
+  select("Chemical.abbreviation", 
+         "Species.Common.Name",
+         "Organism.Lifestage",
+         "Endpoint",
+         "Conc.1.Mean..Standardized."
+         )
+
+#Rename columns
+colnames(fish_tidy) <- c('phthalate', 'species', 'life_stage', 'endpoint',
+                              'concentration')
+
+#filter endpoint
+fish_tidy_NOEC <- fish_tidy %>% 
+  filter(endpoint %in% c("NOEC"))
+
+#boxplot
+ggplot(fish_tidy_NOEC, aes(x = species, y = concentration, color = life_stage)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+#Crustaceans wrangling and tidying
+Crustaceans <- ET.Pht %>% 
+  filter(Chemical.abbreviation %in% c("DEHP")) %>% 
+  filter(Species.Group %in% c("Crustaceans",
+                              "Crustaceans; Standard Test Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Juvenile", "Adult")) %>% 
+  filter(Endpoint %in% c("LC50", "NOEC")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt"))
+
+#Select appropriate columns
+crustaceans_tidy <- Crustaceans %>% 
+  select("Chemical.abbreviation", 
+         "Species.Common.Name",
+         "Organism.Lifestage",
+         "Endpoint",
+         "Conc.1.Mean..Standardized."
+         )
+
+#Rename columns
+colnames(crustaceans_tidy) <- c('phthalate', 'species', 'life_stage', 'endpoint',
+                              'concentration')
+
+#filter endpoint
+crustaceans_tidy_NOEC <- crustaceans_tidy %>% 
+  filter(endpoint %in% c("NOEC"))
+
+#boxplot
+ggplot(crustaceans_tidy_NOEC, aes(x = species, y = concentration, color = life_stage)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+#Amphibians wrangling and tidying
+Amphibians <- ET.Pht %>% 
+  filter(Chemical.abbreviation %in% c("DEHP")) %>% 
+  filter(Species.Group %in% c("Amphibians",
+                              "Amphibians; Standard Test Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Embryo", "Blastula")) %>% 
+  filter(Endpoint %in% c("LC50", "NOEC")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt"))
+
+#Select appropriate columns
+amphibians_tidy <- Amphibians %>% 
+  select("Chemical.abbreviation", 
+         "Species.Common.Name",
+         "Organism.Lifestage",
+         "Endpoint",
+         "Conc.1.Mean..Standardized."
+         )
+
+#Rename columns
+colnames(amphibians_tidy) <- c('phthalate', 'species', 'life_stage', 'endpoint',
+                              'concentration')
+
+#filter endpoint
+amphibians_tidy_NOEC <- amphibians_tidy %>% 
+  filter(endpoint %in% c("NOEC"))
+
+#boxplot
+ggplot(amphibians_tidy_NOEC, aes(x = species, y = concentration, color = life_stage)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+```
+
+
+\newpage
+
+# Dataset Information
+
+
+
+\newpage
+
+# Exploratory Analysis 
+
+
+
+\newpage
+
+# Analysis
+
+
+
+## Question 1: <insert specific question here and add additional subsections for additional questions below, if needed>
+
+## Question 2: 
+
+
+
+
+\newpage
+
+# Summary and Conclusions
+
+
+\newpage
+
+# References
+<add references here if relevant, otherwise delete this section> 

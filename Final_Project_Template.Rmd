@@ -1,0 +1,266 @@
+---
+title: "EDE Final Project"
+subtitle: "Plastic Additives Adversely Affecting Aquatic Life"
+author: "Jalal Bayar & Danielle Butler"
+date: "Spring 2025"
+output: pdf_document
+geometry: margin=2.54cm
+editor_options: 
+  chunk_output_type: console
+---
+
+\newpage
+\tableofcontents 
+\newpage
+
+```{r setup, include=FALSE}
+#Set working directory
+getwd()
+#Load packages
+library(lubridate); library(tidyverse); library(corrplot); library(agricolae);
+library(here); library(dplyr)
+
+#Set ggplot theme
+mytheme <- theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"), 
+        legend.position = "top")
+theme_set(mytheme)
+
+#Load dataset
+ET.Pht <- read.csv(
+  file = here("./ECOTOX_Phthalates_Aquatics_raw.csv"),
+  stringsAsFactors = TRUE,
+  colClasses = c("CAS.Number" = "factor")
+)
+
+```
+
+# 1 Rationale and Research Questions
+We wanted to look into the differences in the NOEC concentration of Di-ethyl-
+hexyl-phthalate (DEHP), an abundant plasticizer in plastics, across species of
+fish. NOEC stands for "No Observed Effect Concentration" which means it is the
+highest tested concentration of a substance where no statistically significant
+adverse effect is observed. It's used in ecotoxicology studies to determine the 
+lowest concentration at which a chemical might be considered safe for a
+particular species or ecosystem. 
+
+If we had found out that the NOEC concentration across all the species was
+the same, we could have provided a generic threshold limit for all the species.
+This analysis would be most helpful from a risk assessment perspective. If we
+could not find the same NOEC concentration from multiple studies for various fish
+species, then we could not give a generic threshold. Also, the life stage is
+important for all the organisms. We are looking to see if the NOEC concentration
+of DEHP is the same for embryonic, larval, and adult life stage or not.
+
+We want to look to answer specific questions such as:
+-Which fish species is most sensitive to DEHP?
+-Which life stage of the fish species is most sensitive to DEHP?
+-For our Anova analysis, our Null Hypothesis is: there is no significant
+difference between the fish species and their life stage.
+-And the Alternate Hypothesis: there will be a significant difference between
+the fish species and their life stage. 
+
+```{r,include=FALSE}
+#This code chunk contains wrangling of fish, crustaceans, and amphibians.
+#Wrangling fish
+fish <- ET.Pht %>% 
+  filter(Chemical.abbreviation %in% c("DEHP")) %>% 
+  filter(Species.Group %in% c("Fish", "Fish; Standard Test Species",
+                              "Fish; Standard Test Species; U.S. Threatened and
+                              Endangered Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Embryo", "Larva", "Adult")) %>% 
+  filter(Endpoint %in% c("NOEC")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt"))
+
+#Select appropriate columns
+fish_tidy <- fish %>% 
+  select("Chemical.abbreviation", 
+         "Species.Common.Name",
+         "Organism.Lifestage",
+         "Endpoint",
+         "Conc.1.Mean..Standardized."
+         )
+
+#Rename columns
+colnames(fish_tidy) <- c('phthalate', 'species', 'life_stage', 'endpoint',
+                              'concentration')
+
+#Wrangle crustaceans
+crustaceans <- ET.Pht %>% 
+  filter(Chemical.abbreviation %in% c("DEHP")) %>% 
+  filter(Species.Group %in% c("Crustaceans",
+                              "Crustaceans; Standard Test Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Juvenile", "Adult")) %>% 
+  filter(Endpoint %in% c("NOEC")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt"))
+
+#Select appropriate columns
+crustaceans_tidy <- crustaceans %>% 
+  select("Chemical.abbreviation", 
+         "Species.Common.Name",
+         "Organism.Lifestage",
+         "Endpoint",
+         "Conc.1.Mean..Standardized."
+         )
+
+#Rename columns
+colnames(crustaceans_tidy) <- c('phthalate', 'species', 'life_stage', 'endpoint'
+                                ,'concentration')
+
+#Amphibians wrangling
+amphibians <- ET.Pht %>% 
+  filter(Chemical.abbreviation %in% c("DEHP")) %>% 
+  filter(Species.Group %in% c("Amphibians",
+                              "Amphibians; Standard Test Species"
+                              )) %>% 
+  filter(Organism.Lifestage %in% c("Embryo", "Blastula")) %>% 
+  filter(Endpoint %in% c("NOEC")) %>% 
+  filter(Conc.1.Units..Standardized. %in% c("AI mg/L",
+                                            "AI mg/kg bdwt"))
+
+#Select appropriate columns
+amphibians_tidy <- amphibians %>% 
+  select("Chemical.abbreviation", 
+         "Species.Common.Name",
+         "Organism.Lifestage",
+         "Endpoint",
+         "Conc.1.Mean..Standardized."
+         )
+
+#Rename columns
+colnames(amphibians_tidy) <- c('phthalate', 'species', 'life_stage', 'endpoint',
+                              'concentration')
+```
+
+\newpage
+
+# 2 Dataset Information
+We extracted data from the eco-toxicolgy knowledge-base resource hub. This
+dataset is regulated by the U.S. EPA and contains over 13,000 chemicals, and
+14,000 species. We chose phthalate esters as the chemical to inspect the
+concentrations of. We downloaded data for phthalates for 16 classes of species,
+such as fish, crustaceans, amphibians, insects/spiders and more. See the link
+here for more details: https://cfpub.epa.gov/ecotox/. We wrangled to look at
+Fish, Amphibians and Crustaceans, and then decided to deep dive into Fish. We
+also filtered to only look at DEHP at the NOEC levels of concentration.
+
+\newpage
+
+# 3 Exploratory Analysis 
+```{r}
+#Raw data dimensions and column names
+dim(ET.Pht)
+colnames(ET.Pht)
+
+#We are interested only in DEHP, fish, NOEC, and life stages. 
+#Selected the following columns: Chemical.abbreviation, Species.Common.Name, 
+#Organism.Lifestage, Endpoint, and Conc.1.Mean..Standardized.
+
+```
+# 4 Visualizations
+
+```{r}
+#Data Exploration and Visualization 
+
+#Fish Boxplot
+ggplot(fish_tidy, aes(x = species, y = concentration, color = life_stage)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  ggtitle("Fish - DEHP NOEC Concentrations") +
+  labs(x = "Species",
+       y = expression(Log[10] * NOEC * " [mg/L]"), 
+       color = "Life stage")
+
+#Amphibians Boxplot
+ggplot(amphibians_tidy, aes(x = species, y = concentration, color = life_stage))+
+  geom_boxplot() +
+  scale_y_log10() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  ggtitle("Amphibians - DEHP NOEC Concentrations") +
+  labs(x = "Species",
+       y = expression(Log[10] * NOEC * " [mg/L]"), 
+       color = "Life stage")
+
+#Crustaceans Boxplot
+ggplot(crustaceans_tidy, aes(x = species, y = concentration, color = 
+                               life_stage)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  ggtitle("Crustaceans - DEHP NOEC Concentrations") +
+  labs(x = "Species",
+       y = expression(Log[10] * NOEC * " [mg/L]"), 
+       color = "Life stage")
+
+```
+
+\newpage
+
+# 5 Analysis
+Ho: The mean NOEC concentration is the same across the fish species and their
+life stages.
+
+Ha: There is a significant difference between the fish species and their
+life stages.
+
+```{r}
+#ANOVA DEHP
+anova <- aov(data = fish_tidy, concentration ~ life_stage + species)
+summary(anova)
+
+#These anova results show that life stage and species are both significantly
+#different with life stage having a stronger p value than species.
+
+#HSD DEHP Species
+hsd.test.species <- HSD.test(anova, "species",
+group = TRUE)
+hsd.test.species
+
+#The output of the HSD test for species specifically shows that the Zebra Danio
+#was in its own group compared to the rest of the species.
+
+#HSD DEHP Life Stage
+hsd.test.lifestage <- HSD.test(anova, "life_stage",
+group = TRUE)
+hsd.test.lifestage
+
+#The output of the HSD test for life stage specifically shows that the Embryo 
+#was in its own group compared with the Larva and Adult life stages.
+
+#For two-way anova
+TukeyHSD(anova)
+
+```
+
+\newpage
+
+# 6 Summary and Conclusions
+Questions:
+-Which fish species is most sensitive to DEHP?
+-Which life stage of the fish species is most sensitive to DEHP?
+
+We found a significant difference between the fish species and their life
+stages, which means, the NOEC concentrations vary within these species. Also,
+they vary between their life stages. So, we could consider the lowest NOEC
+concentration that we found for Guppy for all fish species, but that would be
+a very risk averse option for some of the larger fish.
+
+For future studies, life stage is an important parameter to consider for all the
+chemicals and all the species. It would be interesting to bring in other 
+variables that might affect the NOEC concentration level in the future like
+weight or length of the fish species, for example.
+
+\newpage
+
+# 7 References
+<Olker, J. H., Elonen, C. M., Pilli, A., Anderson, A., Kinziger, B., Erickson, S.,
+Skopinski, M., Pomplun, A., LaLone, C. A., Russom, C. L., & Hoff, D. (2022). The
+ECOTOXicology Knowledgebase: A Curated Database of Ecologically Relevant
+Toxicity Tests to Support Environmental Research and Risk
+Assessment. Environmental Toxicology and Chemistry, 41(6):1520-1539.
+https://doi.org/10.1002/etc.5324> 
