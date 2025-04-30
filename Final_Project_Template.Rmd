@@ -145,8 +145,10 @@ dataset is regulated by the U.S. EPA and contains over 13,000 chemicals, and
 concentrations of. We downloaded data for phthalates for 16 classes of species,
 such as fish, crustaceans, amphibians, insects/spiders and more. See the link
 here for more details: https://cfpub.epa.gov/ecotox/. We wrangled to look at
-Fish, Amphibians and Crustaceans, and then decided to deep dive into Fish. We
-also filtered to only look at DEHP at the NOEC levels of concentration.
+Fish, Amphibians and Crustaceans, and then decided to deep dive into Fish
+becasue the Amphibians and Crustaceans did not have the multiple studies we were
+looking for. We also filtered to only look at DEHP at the NOEC levels of
+concentration.
 
 \newpage
 
@@ -264,3 +266,5 @@ ECOTOXicology Knowledgebase: A Curated Database of Ecologically Relevant
 Toxicity Tests to Support Environmental Research and Risk
 Assessment. Environmental Toxicology and Chemistry, 41(6):1520-1539.
 https://doi.org/10.1002/etc.5324> 
+
+Github URL: https://github.com/Jalalbayar/BayarButler
